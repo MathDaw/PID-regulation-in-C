@@ -1,50 +1,52 @@
 #include "PID.h"
 
-uint8_t pidInit(PID* pid, float* setpoint, uint32_t* measure, uint32_t* output, uint32_t* clock_register)
+enum PID_RETURN_STATUS pidInit(PID* pid, PID_DATA_INPUT_TYPE* setpoint, PID_DATA_INPUT_TYPE* measure, PID_DATA_INPUT_TYPE* output, PID_DATA_INPUT_TYPE* clock_register)
 {
 	pid->setpoint=setpoint;
 	pid->measure=measure;
 	pid->output=output;
 	pid->clock_register=clock_register;
 	pid->integral=0.0;
-	pid->prev_meas=0;
-	pid->next_check=clock_register+pid->delay;
+	pid->prev_diff=0;
+	pid->next_check=*clock_register+pid->delay;
+	return PID_OK;
 }
 
-uint8_t pidCalculate(PID* pid)
+enum PID_RETURN_STATUS pidCalculate(PID* pid)
 {
 	if(pid->mode==PID_MODE_NO_REGULATION)
 		return PID_OK;
-	uint32_t measure = pid->measure;
-	float p=0.0,i=0.0,d=0.0, sum;
+	pid->next_check = *pid->clock_register + pid->delay;
+	PID_CALC_TYPE diff = (PID_CALC_TYPE)(*pid->setpoint - *pid->measure);
+	PID_CALC_TYPE p=0.0,i=0.0,d=0.0, sum;
 	if(pid->mode%2)
 	{
-		p=1.0;
+		p=diff;
 	}
 	if((pid->mode>>1)%2)
 	{
-		pid->integral+=pid->ti*((float)(measure))*((float)pid->delay)/1000.0;
+		pid->integral+=pid->ti * diff * ( (PID_CALC_TYPE)pid->delay ) / 1000.0;
 		i=pid->integral;
 	}
 	if((pid->mode>>2)%2)
 	{
-		d=pid->td*((float)(measure-pid->prev_meas))/((float)pid->delay);
-		pid->prev_meas=measure;
+		d=pid->td*( diff-pid->prev_diff )/((PID_CALC_TYPE)pid->delay);
+		pid->prev_diff=diff;
 	}
 	sum=(p+i+d)*pid->k;
-	pid->output=(uint32_t)sum;
+	*pid->output=(PID_DATA_INPUT_TYPE)sum;
 	return PID_OK;
 }
 
-uint8_t pidCheckTime(PID* pid)
+enum PID_CHECK_TIME pidCheckTime(PID* pid)
 {
-	if(pid->next_check>pid->clock_register)
+	if(*pid->clock_register >= pid->next_check)
 		return PID_CHECK_TIME_OK;
 	else
 		return PID_CHECK_TIME_WAIT;
 }
 
-uint8_t pidSetMode(PID* pid, uint8_t new_mode)
+enum PID_RETURN_STATUS pidSetMode(PID* pid, enum PID_MODE_TYPE new_mode)
 {
 	if(new_mode<PID_NUMBER_OF_MODES)
 	{
@@ -55,25 +57,25 @@ uint8_t pidSetMode(PID* pid, uint8_t new_mode)
 		return PID_ERR;
 }
 
-uint8_t pidSetDelay(PID* pid, uint32_t new_delay)
+enum PID_RETURN_STATUS pidSetDelay(PID* pid, PID_DATA_INPUT_TYPE new_delay_ms)
 {
-	pid->delay=new_delay;
+	pid->delay=new_delay_ms;
 	return PID_OK;
 }
 
-uint8_t pidSetP(PID* pid, float new_k)
+enum PID_RETURN_STATUS pidSetP(PID* pid, PID_CALC_TYPE new_k)
 {
 	pid->k=new_k;
 	return PID_OK;
 }
 
-uint8_t pidSetTi(PID* pid, float new_ti)
+enum PID_RETURN_STATUS pidSetTi(PID* pid, PID_CALC_TYPE new_ti)
 {
 	pid->ti=new_ti;
 	return PID_OK;
 }
 
-uint8_t pidSetTd(PID* pid, float new_td)
+enum PID_RETURN_STATUS pidSetTd(PID* pid, PID_CALC_TYPE new_td)
 {
 	pid->td=new_td;
 	return PID_OK;

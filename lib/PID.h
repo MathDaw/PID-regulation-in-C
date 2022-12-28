@@ -1,44 +1,13 @@
-
-#include "stm32f4xx_hal.h"
+#include <stdint.h>
 
 /*
  * status
  */
-enum
-{
-	PID_OK,
-	PID_ERR
-};
 
-typedef struct
-{
-	float k;
-	float ti;
-	float td;
+#define PID_CALC_TYPE float
+#define PID_DATA_INPUT_TYPE int32_t
 
-	float integral;
-	float prev_meas;
-
-	uint8_t mode;
-
-	uint32_t delay;
-	uint32_t next_check;
-
-	uint32_t* clock_register;
-	float* setpoint;
-	uint32_t* output;
-	uint32_t* measure;
-}PID;
-
-uint8_t pidInit(PID* pid, float* setpoint, uint32_t* measure, uint32_t* output, uint32_t* clock_register);
-
-uint8_t pidCalculate(PID* pid);
-
-#define PID_CHECK_TIME_OK		0
-#define PID_CHECK_TIME_WAIT		1
-uint8_t pidCheckTime(PID* pid);
-
-enum
+enum PID_MODE_TYPE
 {
 	PID_MODE_NO_REGULATION,
 	PID_MODE_P_REGULATOR,
@@ -50,12 +19,51 @@ enum
 	PID_MODE_PID_REGULATOR,
 	PID_NUMBER_OF_MODES
 };
-uint8_t pidSetMode(PID* pid, uint8_t new_mode);
 
-uint8_t pidSetDelay(PID* pid, uint32_t new_delay);
+enum PID_RETURN_STATUS
+{
+	PID_OK,
+	PID_ERR
+};
 
-uint8_t pidSetP(PID* pid, float new_k);
+enum PID_CHECK_TIME
+{
+	PID_CHECK_TIME_OK,
+	PID_CHECK_TIME_WAIT
+};
 
-uint8_t pidSetTi(PID* pid, float new_ti);
+typedef struct
+{
+	PID_CALC_TYPE k;
+	PID_CALC_TYPE ti;
+	PID_CALC_TYPE td;
 
-uint8_t pidSetTd(PID* pid, float new_td);
+	PID_CALC_TYPE integral;
+	PID_CALC_TYPE prev_diff;
+
+	enum PID_MODE_TYPE mode;
+
+	PID_DATA_INPUT_TYPE delay;
+	PID_DATA_INPUT_TYPE next_check;
+
+	PID_DATA_INPUT_TYPE* clock_register;
+	PID_DATA_INPUT_TYPE* setpoint;
+	PID_DATA_INPUT_TYPE* output;
+	PID_DATA_INPUT_TYPE* measure;
+}PID;
+
+enum PID_RETURN_STATUS pidInit(PID* pid, PID_DATA_INPUT_TYPE* setpoint, PID_DATA_INPUT_TYPE* measure, PID_DATA_INPUT_TYPE* output, PID_DATA_INPUT_TYPE* clock_register);
+
+enum PID_RETURN_STATUS pidCalculate(PID* pid);
+
+enum PID_CHECK_TIME pidCheckTime(PID* pid);
+
+enum PID_RETURN_STATUS pidSetMode(PID* pid, enum PID_MODE_TYPE new_mode);
+
+enum PID_RETURN_STATUS pidSetDelay(PID* pid, PID_DATA_INPUT_TYPE new_delay);
+
+enum PID_RETURN_STATUS pidSetP(PID* pid, PID_CALC_TYPE new_k);
+
+enum PID_RETURN_STATUS pidSetTi(PID* pid, PID_CALC_TYPE new_ti);
+
+enum PID_RETURN_STATUS pidSetTd(PID* pid, PID_CALC_TYPE new_td);
